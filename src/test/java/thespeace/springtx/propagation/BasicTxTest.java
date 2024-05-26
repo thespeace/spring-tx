@@ -118,4 +118,56 @@ public class BasicTxTest {
         log.info("트랜잭션2 롤백");
         txManager.rollback(tx2);
     }
+
+
+    /**
+     * <h1>스프링 트랜잭션 전파 예제 : 물리 트랜잭션 커밋</h1>
+     * <ul>
+     *     <li>외부 트랜잭션이 수행중인데, 내부 트랜잭션을 추가로 수행했다.</li>
+     *     <li>외부 트랜잭션은 처음 수행된 트랜잭션이다. 이 경우 신규 트랜잭션( isNewTransaction=true )이 된다.</li>
+     *     <li>내부 트랜잭션을 시작하는 시점에는 이미 외부 트랜잭션이 진행중인 상태이다. 이 경우 내부 트랜잭션은 외부
+     *         트랜잭션에 참여한다.</li>
+     *     <li>트랜잭션 참여
+     *         <ul>
+     *             <li>내부 트랜잭션이 외부 트랜잭션에 참여한다는 뜻은 내부 트랜잭션이 외부 트랜잭션을 그대로 이어 받아서
+     *                 따른다는 뜻이다.</li>
+     *             <li>다른 관점으로 보면 외부 트랜잭션의 범위가 내부 트랜잭션까지 넓어진다는 뜻이다.</li>
+     *             <li>외부에서 시작된 물리적인 트랜잭션의 범위가 내부 트랜잭션까지 넓어진다는 뜻이다.</li>
+     *             <li>정리하면 외부 트랜잭션과 내부 트랜잭션이 하나의 물리 트랜잭션으로 묶이는 것이다.</li>
+     *         </ul>
+     *     </li>
+     *     <li>내부 트랜잭션은 이미 진행중인 외부 트랜잭션에 참여한다. 이 경우 신규 트랜잭션이 아니다
+     *         ( isNewTransaction=false ).</li>
+     *     <li>예제에서는 둘다 성공적으로 커밋했다.</li>
+     * </ul><br>
+     *
+     * 이 예제에서는 외부 트랜잭션과 내부 트랜잭션이 하나의 물리 트랜잭션으로 묶인다고 설명했다.<br>
+     * 그런데 코드를 잘 보면 커밋을 두 번 호출했다. 트랜잭션을 생각해보면 하나의 커넥션에 커밋은 한번만 호출할 수 있다.
+     * 커밋이나 롤백을 하면 해당 트랜잭션은 끝나버린다.<p>
+     * <pre>
+     *     txManager.commit(inner);
+     *     txManager.commit(outer);
+     * </pre>
+     *
+     * 스프링은 어떻게 어떻게 외부 트랜잭션과 내부 트랜잭션을 묶어서 하나의 물리 트랜잭션으로 묶어서 동작하게 하는지는
+     * 아래의 문서로 자세히 알아보자.
+     *
+     * @see docs/08.Spring_transaction_propagation_example-commit.md
+     */
+    @Test
+    void inner_commit() {
+        log.info("외부 트랜잭션 시작");
+        TransactionStatus outer = txManager.getTransaction(new DefaultTransactionAttribute());
+        log.info("outer.isNewTransaction() = {}", outer.isNewTransaction());
+
+        log.info("내부 트랜잭션 시작");
+        TransactionStatus inner = txManager.getTransaction(new DefaultTransactionAttribute());
+        log.info("inner.isNewTransaction() = {}", inner.isNewTransaction());
+
+        log.info("내부 트랜잭션 커밋");
+        txManager.commit(inner);
+
+        log.info("외부 트랜잭션 커밋");
+        txManager.commit(outer);
+    }
 }
