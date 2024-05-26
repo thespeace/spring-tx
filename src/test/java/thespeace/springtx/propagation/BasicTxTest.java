@@ -170,4 +170,26 @@ public class BasicTxTest {
         log.info("외부 트랜잭션 커밋");
         txManager.commit(outer);
     }
+
+    /**
+     * <h1>스프링 트랜잭션 전파 예제 : 외부 트랜잭션 롤백</h1>
+     * 논리 트랜잭션이 하나라도 롤백되면 전체 물리 트랜잭션은 롤백된다.<br>
+     * 따라서 이 경우 내부 트랜잭션이 커밋했어도, 내부 트랜잭션 안에서 저장한 데이터도 모두 함께 롤백된다.
+     *
+     * @see docs/09.Spring_transaction_propagation_example-outer_rollback.md
+     */
+    @Test
+    void outer_rollback() {
+        log.info("외부 트랜잭션 시작");
+        TransactionStatus outer = txManager.getTransaction(new DefaultTransactionAttribute());
+
+        log.info("내부 트랜잭션 시작");
+        TransactionStatus inner = txManager.getTransaction(new DefaultTransactionAttribute());
+
+        log.info("내부 트랜잭션 커밋");
+        txManager.commit(inner);
+
+        log.info("외부 트랜잭션 롤백");
+        txManager.rollback(outer);
+    }
 }
