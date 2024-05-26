@@ -9,9 +9,12 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.TransactionStatus;
+import org.springframework.transaction.UnexpectedRollbackException;
 import org.springframework.transaction.interceptor.DefaultTransactionAttribute;
 
 import javax.sql.DataSource;
+
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
  * <h1>스프링 트랜잭션 전파1 - 커밋, 롤백</h1>
@@ -191,5 +194,30 @@ public class BasicTxTest {
 
         log.info("외부 트랜잭션 롤백");
         txManager.rollback(outer);
+    }
+
+
+    /**
+     * <h1>스프링 트랜잭션 전파 예제 : 내부 트랜잭션 롤백</h1>
+     * 내부 트랜잭션은 롤백되는데, 외부 트랜잭션이 커밋되는 상황을 알아보자.<br>
+     * 실행 결과를 보면 마지막에 외부 트랜잭션을 커밋할 때 `UnexpectedRollbackException.class`이
+     * 발생하는 것을 확인할 수 있다. 아래의 문서로 알아보자.
+     *
+     * @see docs/10.Spring_transaction_propagation_example-inner_rollback.md
+     */
+    @Test
+    void inner_rollback() {
+        log.info("외부 트랜잭션 시작");
+        TransactionStatus outer = txManager.getTransaction(new DefaultTransactionAttribute());
+
+        log.info("내부 트랜잭션 시작");
+        TransactionStatus inner = txManager.getTransaction(new DefaultTransactionAttribute());
+
+        log.info("내부 트랜잭션 롤백");
+        txManager.rollback(inner);
+
+        log.info("외부 트랜잭션 커밋");
+        assertThatThrownBy(() -> txManager.commit(outer))
+                .isInstanceOf(UnexpectedRollbackException.class);
     }
 }
