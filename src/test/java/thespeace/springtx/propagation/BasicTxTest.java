@@ -8,6 +8,7 @@ import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.TransactionStatus;
 import org.springframework.transaction.UnexpectedRollbackException;
 import org.springframework.transaction.interceptor.DefaultTransactionAttribute;
@@ -219,5 +220,45 @@ public class BasicTxTest {
         log.info("외부 트랜잭션 커밋");
         assertThatThrownBy(() -> txManager.commit(outer))
                 .isInstanceOf(UnexpectedRollbackException.class);
+    }
+
+    /**
+     * <h1>스프링 트랜잭션 전파 : REQUIRES_NEW</h1>
+     * 외부 트랜잭션과 내부 트랜잭션을 완전히 분리해서 사용하는 방법에 대해서 알아보자.<br>
+     * 외부 트랜잭션과 내부 트랜잭션을 완전히 분리해서 각각 별도의 물리 트랜잭션을 사용하는 방법이다. 그래서 커밋과
+     * 롤백도 각각 별도로 이루어지게 된다.<br><br>
+     *
+     * 이 방법은 내부 트랜잭션에 문제가 발생해서 롤백해도, 외부 트랜잭션에는 영향을 주지 않는다. 반대로 외부 트랜잭션에
+     * 문제가 발생해도 내부 트랜잭션에 영향을 주지 않는다.<br>
+     *
+     * <ul>
+     *     <li>내부 트랜잭션을 시작할 때 전파 옵션인 propagationBehavior 에 PROPAGATION_REQUIRES_NEW
+     *         옵션을 주었다.</li>
+     *     <li>이 전파 옵션을 사용하면 내부 트랜잭션을 시작할 때 기존 트랜잭션에 참여하는 것이 아니라 새로운 물리
+     *         트랜잭션을 만들어서 시작하게 된다.</li>
+     * </ul>
+     *
+     * 해당 코드와 아래의 문서를 통해 작동원리를 중점적으로 이해해보자.
+     *
+     * @see docs/11.Spring_transaction_propagation_example-REQUIRES_NEW.md
+     */
+    @Test
+    void inner_rollback_requires_new() {
+        log.info("외부 트랜잭션 시작");
+        TransactionStatus outer = txManager.getTransaction(new DefaultTransactionAttribute());
+        log.info("outer.isNewTransaction()={}", outer.isNewTransaction());
+
+        log.info("내부 트랜잭션 시작");
+        DefaultTransactionAttribute definition = new DefaultTransactionAttribute();
+
+        definition.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
+        TransactionStatus inner = txManager.getTransaction(definition);
+        log.info("inner.isNewTransaction()={}", inner.isNewTransaction());
+
+        log.info("내부 트랜잭션 롤백");
+        txManager.rollback(inner); //롤백
+
+        log.info("외부 트랜잭션 커밋");
+        txManager.commit(outer); //커밋
     }
 }
