@@ -3,6 +3,7 @@ package thespeace.springtx.propagation;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  * <h2>비즈니스 로직</h2>
@@ -22,6 +23,7 @@ public class MemberService {
      *     <li>현재 별도의 트랜잭션은 설정하지 않는다.</li>
      * </ul>
      */
+    @Transactional
     public void joinV1(String username) {
         Member member = new Member(username);
         Log logMessage = new Log(username);

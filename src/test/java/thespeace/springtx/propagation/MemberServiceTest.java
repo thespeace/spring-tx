@@ -5,6 +5,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
@@ -47,12 +48,70 @@ class MemberServiceTest {
     @Autowired LogRepository logRepository;
 
     /**
+     * <pre>
      * MemberService    @Transactional:OFF
      * MemberRepository @Transactional:ON
      * LogRepository    @Transactional:ON
+     * </pre>
      */
     @Test
     void outerTxOff_success() {
+        //given
+        String username = "outerTxOff_success";
+
+        //when
+        memberService.joinV1(username);
+
+        //then: 모든 데이터가 정상 저장된다.
+        assertTrue(memberRepository.find(username).isPresent());
+        assertTrue(logRepository.find(username).isPresent());
+    }
+
+    /**
+     * <pre>
+     * MemberService    @Transactional:OFF
+     * MemberRepository @Transactional:ON
+     * LogRepository    @Transactional:ON Exception
+     * </pre>
+     * <h2>서비스 계층에 트랜잭션이 없을 때 - 커밋, 롤백</h2>
+     * <ul>
+     *     <li>사용자 이름에 로그예외 라는 단어가 포함되어 있으면 LogRepository 에서 런타임 예외가 발생한다.</li>
+     *     <li>트랜잭션 AOP는 해당 런타임 예외를 확인하고 롤백 처리한다.</li>
+     * </ul><br>
+     *
+     * 이 경우 회원은 저장되지만, 회원 이력 로그는 롤백된다. 따라서 데이터 정합성에 문제가 발생할 수 있다.<br>
+     * 둘을 하나의 트랜잭션으로 묶어서 처리해보자.<p><p>
+     *
+     * 참고 : 트랜잭션 AOP도 결국 내부에서는 트랜잭션 매니저를 사용하게 된다.
+     */
+    @Test
+    void outerTxOff_fail() {
+        //given
+        String username = "로그예외_outerTxOff_fail";
+
+        //when
+        assertThatThrownBy(() -> memberService.joinV1(username))
+                .isInstanceOf(RuntimeException.class);
+
+        //then: 완전히 롤백되지 않고, member 데이터가 남아서 저장된다.
+        assertTrue(memberRepository.find(username).isPresent());
+        assertTrue(logRepository.find(username).isEmpty());
+    }
+
+    /**
+     * <pre>
+     * MemberService    @Transactional:ON
+     * MemberRepository @Transactional:OFF
+     * LogRepository    @Transactional:OFF
+     * </pre>
+     * <h2>트랜잭션 하나만 사용하기</h2>
+     * 회원 리포지토리와 로그 리포지토리를 하나의 트랜잭션으로 묶는 가장 간단한 방법은 이 둘을 호출하는
+     * 회원 서비스에만 트랜잭션을 사용하는 것이다.
+     *
+     * @see docs/13.Utilizing_spring_transaction_propagation-single_transaction.md
+     */
+    @Test
+    void singleTx() {
         //given
         String username = "outerTxOff_success";
 
