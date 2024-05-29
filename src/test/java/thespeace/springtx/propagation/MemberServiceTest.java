@@ -113,7 +113,30 @@ class MemberServiceTest {
     @Test
     void singleTx() {
         //given
-        String username = "outerTxOff_success";
+        String username = "singleTx";
+
+        //when
+        memberService.joinV1(username);
+
+        //then: 모든 데이터가 정상 저장된다.
+        assertTrue(memberRepository.find(username).isPresent());
+        assertTrue(logRepository.find(username).isPresent());
+    }
+
+    /**
+     * <pre>
+     * MemberService    @Transactional:ON
+     * MemberRepository @Transactional:ON
+     * LogRepository    @Transactional:ON
+     * </pre>
+     * <h2>트랜잭션 전파 활용 - 전파 커밋</h2>
+     *
+     * @see docs/14.Utilizing_spring_transaction_propagation-propagation_commit.md
+     */
+    @Test
+    void outerTxOn_success() {
+        //given
+        String username = "outerTxOn_success";
 
         //when
         memberService.joinV1(username);
