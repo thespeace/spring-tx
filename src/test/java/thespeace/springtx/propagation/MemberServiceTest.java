@@ -145,4 +145,29 @@ class MemberServiceTest {
         assertTrue(memberRepository.find(username).isPresent());
         assertTrue(logRepository.find(username).isPresent());
     }
+
+    /**
+     * <pre>
+     * MemberService    @Transactional:ON
+     * MemberRepository @Transactional:ON
+     * LogRepository    @Transactional:ON Exception
+     * </pre>
+     * <h2>트랜잭션 전파 활용 - 전파 롤백</h2>
+     * LogRepository 에서 예외가 발생해서 전체 트랜잭션이 롤백되는 경우를 알아보자.
+     *
+     * @see docs/15.Utilizing_spring_transaction_propagation-propagation_rollback.md
+     */
+    @Test
+    void outerTxOn_fail() {
+        //given
+        String username = "로그예외_outerTxOn_fail";
+
+        //when
+        assertThatThrownBy(() -> memberService.joinV1(username))
+                .isInstanceOf(RuntimeException.class);
+
+        //then: 모든 데이터가 롤백된다.
+        assertTrue(memberRepository.find(username).isEmpty());
+        assertTrue(logRepository.find(username).isEmpty());
+    }
 }
