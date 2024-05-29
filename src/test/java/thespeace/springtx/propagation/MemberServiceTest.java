@@ -195,4 +195,31 @@ class MemberServiceTest {
         assertTrue(memberRepository.find(username).isEmpty());
         assertTrue(logRepository.find(username).isEmpty());
     }
+
+    /**
+     * <pre>
+     * MemberService    @Transactional:ON
+     * MemberRepository @Transactional:ON
+     * LogRepository    @Transactional(REQUIRES_NEW) Exception
+     * </pre>
+     * <h2>트랜잭션 전파 활용 - 복구 REQUIRES_NEW</h2>
+     * 회원 가입을 시도한 로그를 남기는데 실패하더라도 회원 가입은 유지되어야 한다.<p><p>
+     *
+     * 이 요구사항을 만족하기 위해서 로그와 관련된 물리 트랜잭션을 별도로 분리해보자.<br>
+     * 바로 REQUIRES_NEW 를 사용하는 것이다.(LogRepository - save())
+     *
+     * @see docs/17.Utilizing_spring_transaction_propagation-recover_requires_new.md
+     */
+    @Test
+    void recoverException_success() {
+        //given
+        String username = "로그예외_recoverException_success";
+
+        //when
+        memberService.joinV2(username);
+
+        //then: member 저장, log 롤백
+        assertTrue(memberRepository.find(username).isPresent());
+        assertTrue(logRepository.find(username).isEmpty());
+    }
 }
