@@ -44,6 +44,7 @@ public class MemberService {
      *     <li>현재 별도의 트랜잭션은 설정하지 않는다.</li>
      * </ul>
      */
+    @Transactional
     public void joinV2(String username) {
         Member member = new Member(username);
         Log logMessage = new Log(username);
